@@ -189,6 +189,12 @@ def make_nodes(regex):
             nodes.update(new_node)
 
 
+nullables = {}
+first_poss = {}
+last_poss = {}
+follow_poss = {}
+
+
 def nullable(node):
     if not node.left and not node.right:
         if node.value == "lambda":
@@ -220,11 +226,6 @@ def first_pos(node):
         return first_pos(node.left)
 
 
-nullables = {}
-first_poss = {}
-last_poss = {}
-
-
 def last_pos(node):
     if not node.left and not node.right:
         if node.value == "lambda":
@@ -242,6 +243,19 @@ def last_pos(node):
         return last_pos(node.left)
 
 
+def follow_pos(node):
+    if node.position != 0:
+        follow_poss[node.position] = set()
+    elif node.value == '.':
+        for i in range(1, get_max_nodes()+1):
+            if i in last_poss[node.left.node_nr]:
+                follow_poss[i] = follow_poss[i] | first_poss[node.right.node_nr]
+    elif node.value == '*':
+        for i in range(1, get_max_nodes() + 1):
+            if i in last_poss[node.left.node_nr]:
+                follow_poss[i] = follow_poss[i] | first_poss[node.left.node_nr]
+
+
 def sdr(tree):
     if tree.left:
         sdr(tree.left)
@@ -251,13 +265,21 @@ def sdr(tree):
         n = {tree.node_nr: nullable(tree)}
         fp ={tree.node_nr: first_pos(tree)}
         lp ={tree.node_nr: last_pos(tree)}
-        # folp = {self.position: follow_pos(self)}
+        #folp = {tree.node_nr: follow_pos(tree)}
 
         nullables.update(n)
         first_poss.update(fp)
         last_poss.update(lp)
-        # follow_pos(self)
-        # follow_poss.update(folp)
+        follow_pos(tree)
+        #follow_poss.update(folp)
+
+
+def get_max_nodes():
+    maxim = 0
+    for key, value in nodes.items():
+        if key > maxim:
+            maxim = key
+    return maxim
 
 
 exp = get_expresie()
@@ -267,9 +289,48 @@ print(V)
 tree = get_concat(exp)
 sdr(tree)
 print_tree_postorder(tree)
-print(last_poss)
 
+radacina = tree.node_nr
+poz = get_max_nodes()
+q0 = first_poss[radacina]
+visited = {}
 
+for key, value in first_poss.items():
+    node_number = int(key[1:])
+    visited[node_number] = 0
+
+Q = [first_poss[radacina]]
+
+nr = 0
+for key, value in visited.items():
+    if key > nr:
+        nr = key
+
+visited.update({str(list(Q[0])): 0})
+
+# visited.update({nr: 0})
+if poz in first_poss[radacina]:
+    F = [first_poss[radacina]]
+else:
+    F = []
+
+T = list(Q[0])
+for T in Q:
+    if visited[str(list(T))] == 0:
+        visited[str(list(T))] = 1
+        for a in V:
+            U = set()
+            for i in list(T):
+                if nodes[i] == a:
+                    U = U | follow_poss[i]
+            if U not in Q and U != set():
+                Q.append(U)
+                visited.update({str(list(U)): 0})
+                if poz in U:
+                    F.append(U)
+print(Q)
+print(F)
+#
 
 # cum la suma in stanga pot avea un produs si in dreapta o suma, sau doar un produs, asa si la * cu . si |: in stanga
 # lui . pot avea * si in dreapta ., sau doar *
