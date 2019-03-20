@@ -309,6 +309,7 @@ for key, value in visited.items():
 visited.update({str(list(Q[0])): 0})
 
 # visited.update({nr: 0})
+tranzitii = [] # va fi un vector cu elemente de forma : (stare_initiala, caracter, stare_urmatoare)
 if poz in first_poss[radacina]:
     F = [first_poss[radacina]]
 else:
@@ -328,8 +329,13 @@ for T in Q:
                 visited.update({str(list(U)): 0})
                 if poz in U:
                     F.append(U)
+            if U != set():
+                tranzitie_curenta = (T, a, U)
+                tranzitii.append(tranzitie_curenta)
 print(Q)
 print(F)
+for i in tranzitii:
+    print(i)
 #
 
 # cum la suma in stanga pot avea un produs si in dreapta o suma, sau doar un produs, asa si la * cu . si |: in stanga
