@@ -53,6 +53,7 @@ def height(node):
         else:
             return rheight + 1
 
+
 def get_expresie():
     with open('regex.txt', 'r') as file:
         regex = file.read()
@@ -104,9 +105,6 @@ def get_expresie():
     exp = list(exp)
     exp.append("end")
     return exp
-
-
-print(get_expresie())
 
 
 def get_node_numbers(expresie):
@@ -175,40 +173,101 @@ def print_tree_postorder(tree):
     print_tree_postorder(tree.right)
     print(tree.value + ",position: " + str(tree.position) + ", number: " + tree.node_nr)
 
-#
-# token = "((a*).b*).c"
-# token_list = list(token)
-# token_list.append("end")
-nodes = {}
-V = []
+
+nodes = {} # nodurile frunza
+V = [] # alfabetul expresiei
+
 
 def make_nodes(regex):
     nr = 1
-    for i in range(len(regex)):
-        if regex[i] not in ['(', ')', '|', '+', '*', '.']:
-            new_node = {nr: regex[i]}
-            if regex[i] not in V and regex[i] != '#':
-                V.append(regex[i])
+    for i in regex:
+        if i not in ['(', ')', '|', '+', '*', '.', 'end']:
+            new_node = {nr: i}
+            if i not in V and i != '#':
+                V.append(i)
             nr = nr + 1
             nodes.update(new_node)
 
-# pos = 1
-#
-# def sdr(tree):
-#     if tree.left:
-#         sdr(tree.left)
-#     if tree.right:
-#         sdr(tree.right)
-#     if tree.left is None and tree.right is None:
-#         tree.set_pos(pos)
-#         pos = pos + 1
+
+def nullable(node):
+    if not node.left and not node.right:
+        if node.value == "lambda":
+            return True
+        elif node.value != '':
+            return False
+    elif node.value == '|':
+        return nullable(node.left) or nullable(node.right)
+    elif node.value == '.':
+        return nullable(node.left) and nullable(node.right)
+    elif node.value == '*':
+        return True
+
+
+def first_pos(node):
+    if not node.left and not node.right:
+        if node.value == "lambda":
+            return set()
+        elif node.value != '':
+            return {node.position}
+    elif node.value == '|':
+        return set(first_pos(node.left)) | set(first_pos(node.right))
+    elif node.value == '.':
+        if nullable(node.left):
+            return set(first_pos(node.left)) | set(first_pos(node.right))
+        else:
+            return set(first_pos(node.left))
+    elif node.value == '*':
+        return first_pos(node.left)
+
+
+nullables = {}
+first_poss = {}
+last_poss = {}
+
+
+def last_pos(node):
+    if not node.left and not node.right:
+        if node.value == "lambda":
+            return set()
+        elif node.value != '':
+            return {node.position}
+    elif node.value == '|':
+        return set(last_pos(node.left)) | set(last_pos(node.right))
+    elif node.value == '.':
+        if nullable(node.right):
+            return set(last_pos(node.left)) | set(last_pos(node.right))
+        else:
+            return set(last_pos(node.right))
+    elif node.value == '*':
+        return last_pos(node.left)
+
+
+def sdr(tree):
+    if tree.left:
+        sdr(tree.left)
+    if tree.right:
+        sdr(tree.right)
+    if tree.value != '':
+        n = {tree.node_nr: nullable(tree)}
+        fp ={tree.node_nr: first_pos(tree)}
+        lp ={tree.node_nr: last_pos(tree)}
+        # folp = {self.position: follow_pos(self)}
+
+        nullables.update(n)
+        first_poss.update(fp)
+        last_poss.update(lp)
+        # follow_pos(self)
+        # follow_poss.update(folp)
 
 
 exp = get_expresie()
 Tree.node_number = get_node_numbers(exp)
+make_nodes(exp)
+print(V)
 tree = get_concat(exp)
-#sdr(tree)
+sdr(tree)
 print_tree_postorder(tree)
+print(last_poss)
 
 
 
