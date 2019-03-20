@@ -1,8 +1,12 @@
 class Tree:
-    def __init__(self, value, left=None, right=None):
+    def __init__(self, value, left=None, right=None, position = 0):
         self.value = value
         self.left = left
         self.right = right
+        self.position = position
+
+    def set_pos(self,position):
+        self.position = position
 
     def print_tree(self):
         print(self.value)
@@ -48,28 +52,52 @@ def height(node):
 with open('regex.txt', 'r') as file:
     regex = file.read()
 
-exp = ""
-for i in range(0, len(regex)):
-    if regex[i] not in ['(', ')', '|', '*'] and regex[i - 1] == '*':
+exp = regex[0]
+in_sau = False
+for i in range(1, len(regex) - 1):
+    if regex[i] not in ['(', ')', '|', '*'] and regex[i - 1] == '*' and regex[i+1] != '*':
         exp = exp + '.' + regex[i]
     elif regex[i] not in ['(', ')', '*', '|'] and regex[i - 1] not in ['(', ')', '*', '|']:
-        exp = exp + '.' + regex[i]
+        if in_sau == True:
+            exp = exp + '.' + regex[i]
+        else:
+            exp = '(' + exp + ').' + regex[i]
         if regex[i] not in ['(', ')', '|', '*'] and regex[i + 1] in [')', '|']:
             exp = exp + ')'
+            in_sau = False
     elif regex[i] not in ['(', ')', '|', '*'] and regex[i-1] == '|' and regex[i+1] not in ['(', ')', '|', '*']:
         exp = exp + '(' + regex[i]
-    elif regex[i] not in ['(', ')', '|', '*'] and regex[i+1] == ')':
+        in_sau = True
+    elif regex[i] not in ['(', ')', '|', '*'] and regex[i+1] == ')' and regex[i-1] not in ['(', ')', '|', '*']:
         exp = exp + regex[i] + ')'
     elif regex[i-1] == '*' and regex[i] == '(':
         exp = exp + '.' + regex[i]
     elif regex[i-1] == '(' and regex[i] not in ['(', ')', '|', '*'] and regex[i+1] not in ['(', ')', '|', '*']:
         exp = exp + '(' + regex[i]
+        in_sau = True
+    elif regex[i-1] == ')' and (regex[i] not in ['(', ')', '|', '*'] or regex[i] == '('):
+        exp = '(' + exp + '.' + regex[i] + ')'
+    elif regex[i + 1] == '*' and regex[i] not in ['(', ')', '|', '*'] and regex[i-1] in ['(', ')', '|', '*']:
+        exp = exp + '.(' + regex[i] + '*' + ')'
+        i = i + 1
     else:
         exp = exp + regex[i]
 
+if i + 1 != len(regex):
+    if regex[len(regex) - 1] not in ['(', ')', '|', '*'] and regex[len(regex) - 2] == '*':
+        exp = '(' + exp + ').' + regex[len(regex) - 1]
+    elif regex[len(regex) - 1] not in ['(', ')', '*', '|'] and regex[len(regex) - 2] not in ['(', ')', '*', '|']:
+        exp = '(' + exp + ').' + regex[len(regex) - 1]
+    elif regex[len(regex) - 2] == '*' and regex[len(regex) - 1] == '(':
+        exp = exp + '.' + regex[len(regex) - 1]
+    elif regex[len(regex) - 2] == ')' and regex[len(regex) - 1] not in ['(', ')', '|', '*']:
+        exp = exp + '.' + regex[len(regex) - 1]
+    else:
+        exp = exp + regex[len(regex) - 1]
 
 exp = '(' + exp + ').#'
 exp = list(exp)
+exp.append("end")
 print(exp)
 
 def get_token(token_list, expected):
@@ -101,22 +129,35 @@ def get_or(token_list):
 
 
 def get_concat(token_list):
-    a = get_or(token_list)
+    a = get_star(token_list)
     if get_token(token_list, '.'):
         b = get_concat(token_list)
         return Tree('.', a, b)
     return a
 
 
+def get_star(token_list):
+    a = get_or(token_list)
+    if get_token(token_list, '*'):
+        # b = get_star(token_list)
+        return Tree('*', a, None)
+    return a
+
+
 def print_tree_postorder(tree):
-    if tree is None: return
+    if tree is None:
+        return
     print_tree_postorder(tree.left)
     print_tree_postorder(tree.right)
     print(tree.value)
 
+#
+# token = "((a*).b*).c"
+# token_list = list(token)
+# token_list.append("end")
 
-token_list = ['(', 'a', '|', '(', 'b', '.', 'b', ')', ')', "end"]
-tree = get_concat(token_list)
+
+tree = get_concat(exp)
 print_tree_postorder(tree)
 
 # cum la suma in stanga pot avea un produs si in dreapta o suma, sau doar un produs, asa si la * cu . si |: in stanga
